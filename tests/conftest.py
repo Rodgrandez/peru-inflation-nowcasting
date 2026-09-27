@@ -11,7 +11,7 @@ SAMPLE_PAYLOAD = {
 def make_daily(start="2010-01-01", end="2016-12-31", seed=0):
     rng = np.random.default_rng(seed)
     idx = pd.bdate_range(start, end, name="date")
-    walk = lambda s: np.exp(np.cumsum(rng.normal(0, s, len(idx))))  # noqa: E731
+    walk = lambda s: np.exp(np.cumsum(rng.normal(0, s, len(idx))))
     return pd.DataFrame({"fx": 3 * walk(0.003), "rate": 4 + np.cumsum(rng.normal(0, 0.01, len(idx))),
                          "wti": 60 * walk(0.02), "wheat": 500 * walk(0.015), "maize": 400 * walk(0.015),
                          "soyoil": 40 * walk(0.015)}, index=idx)
