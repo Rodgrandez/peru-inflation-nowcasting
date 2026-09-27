@@ -17,18 +17,20 @@ Out-of-sample nowcasts, expanding window, 2015-01 to 2026-08 (140 months). RMSE 
 | Combination | 0.955 | 0.949 | 0.951 | 0.965 | 0.098 |
 | U-MIDAS | 0.969 | 0.950 | 0.958 | 0.966 | 0.256 |
 | MIDAS-Almon | 0.983 | 0.943 | 0.968 | 0.967 | 0.283 |
+| AR+exp | 0.974 | 0.974 | 0.974 | 0.974 | 0.211 |
 | Ridge | 0.959 | 0.944 | 0.967 | 0.978 | 0.360 |
 | AR | 1.000 | 1.000 | 1.000 | 1.000 | – |
 | LASSO | 1.045 | 1.036 | 1.003 | 1.018 | 0.589 |
 | XGBoost | 1.007 | 1.027 | 1.004 | 1.041 | 0.209 |
 | RW | 1.523 | 1.523 | 1.523 | 1.523 | 0.000 |
 
-Best end-of-month model: **Combination**, relative RMSE **0.965** (Diebold-Mariano p-value vs AR: 0.098).
+Best end-of-month model: **Combination**, relative RMSE **0.965** (Diebold-Mariano p-value vs AR: 0.098). Against **AR+exp** (the AR plus the lagged expectations survey, which every high-frequency model also uses) its relative RMSE is **0.991** (p-value: 0.674). Robustness: 2026-03 accounts for 17% of the AR's squared errors; without it the relative RMSE is 0.954.
 
 **Inflation excluding food and energy**
 
 | Model | Week 1 | Week 2 | Week 3 | Week 4 | DM p-value (week 4) |
 |---|---|---|---|---|---|
+| AR+exp | 0.983 | 0.983 | 0.983 | 0.983 | 0.670 |
 | AR | 1.000 | 1.000 | 1.000 | 1.000 | – |
 | MIDAS-Almon | 0.993 | 1.025 | 1.099 | 1.020 | 0.681 |
 | Combination | 0.989 | 1.008 | 1.064 | 1.033 | 0.612 |
@@ -38,7 +40,7 @@ Best end-of-month model: **Combination**, relative RMSE **0.965** (Diebold-Maria
 | XGBoost | 1.068 | 1.083 | 1.168 | 1.165 | 0.127 |
 | RW | 2.065 | 2.065 | 2.065 | 2.065 | 0.000 |
 
-Best end-of-month model: **AR**, relative RMSE **1.000** (Diebold-Mariano p-value vs AR: –).
+Best end-of-month model: **AR+exp**, relative RMSE **0.983** (Diebold-Mariano p-value vs AR: 0.670). Robustness: 2026-03 accounts for 36% of the AR's squared errors; without it the relative RMSE is 0.935.
 <!-- RESULTS:END -->
 
 ![Relative RMSE by week](reports/figures/rel_rmse_headline.png) ![Nowcast vs actual](reports/figures/nowcast_headline.png)
@@ -61,7 +63,7 @@ Best end-of-month model: **AR**, relative RMSE **1.000** (Diebold-Mariano p-valu
   survey) isolates what the daily data add on top of it.
 
 ## Reproduce
-Pinned versions in `environment.yml` (conda-forge); the full run takes about 40 minutes on a laptop.
+Pinned versions in `environment.yml` (conda-forge); the full run takes about 10 minutes on a laptop.
 ```bash
 conda env create -f environment.yml && conda activate inflation-nowcast
 make all        # or: python -m nowcast.pipeline all
