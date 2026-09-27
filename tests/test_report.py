@@ -63,3 +63,15 @@ def test_pipeline_smoke(tmp_path, monkeypatch):
     res = json.loads((tmp_path / "reports/results.json").read_text())
     assert set(res["targets"]) == {"headline", "core"} and res["sample"]["n_months"] == 6
     assert "Best end-of-month model" in (tmp_path / "README.md").read_text(encoding="utf-8")
+
+
+def test_rel_rmse_plot_leaves_out_random_walk(tmp_path, monkeypatch):
+    # RW is 1.5-2x worse than AR and would flatten the differences that matter; it stays in the tables.
+    captured = {}
+    monkeypatch.setattr(plots, "_save", lambda fig, path: captured.setdefault("labels", [
+        t.get_text() for t in fig.axes[0].get_legend().get_texts()]))
+    rows = _results()["targets"]["headline"]["by_week"] + [
+        {"week": w, "model": "RW", "rmse": 0.3, "mae": 0.2, "rel_rmse": 1.5, "dm_stat": 3.0, "dm_pvalue": 0.0}
+        for w in (1, 2, 3, 4)]
+    plots.rel_rmse_by_week(pd.DataFrame(rows), "headline", tmp_path / "a.png")
+    assert captured["labels"] == ["AR", "MIDAS-Almon"]
