@@ -26,3 +26,24 @@ def test_config_codes():
     assert config.MONTHLY == {"headline": "PN01271PM", "core": "PN01276PM", "expect": "PD12912AM"}
     assert set(config.DAILY) == {"fx", "rate", "wti", "wheat", "maize", "soyoil"}
     assert config.WEEK_CUTOFF == {1: 7, 2: 14, 3: 21, 4: 31}
+
+
+def test_download_and_load_roundtrip(tmp_path, monkeypatch):
+    from conftest import make_daily, make_monthly
+
+    from nowcast import data
+    daily, monthly = make_daily(), make_monthly()
+    monthly_ts = monthly.copy()
+    monthly_ts.index = monthly_ts.index.to_timestamp()
+    calls = []
+
+    def fake_fetch(series, start, end):
+        calls.append(tuple(series))
+        return daily if "fx" in series else monthly_ts
+
+    monkeypatch.setattr(data, "fetch", fake_fetch)
+    data.download(tmp_path)
+    d, m = data.load(tmp_path)
+    assert calls == [tuple(config.DAILY), tuple(config.MONTHLY)]
+    assert isinstance(m.index, pd.PeriodIndex) and m.index.freqstr == "M"
+    assert d.shape == daily.shape and list(m.columns) == ["headline", "core", "expect"]
