@@ -22,3 +22,9 @@ WEEK_CUTOFF = {1: 7, 2: 14, 3: 21, 4: 31}
 ALMON_DEGREE = 2
 SEED = 42
 COMBO_MODELS = ("U-MIDAS", "MIDAS-Almon", "Ridge", "LASSO", "XGBoost")
+
+# Isolated data glitches in the BCRP daily series (e.g. wheat at 0.46 US$/t on 2005-03-17): drop a value that is
+# more than OUTLIER_LOG_MAX (in logs) away from the median of the previous OUTLIER_WINDOW observations.
+OUTLIER_SERIES = ("fx", "wheat", "maize", "soyoil")
+OUTLIER_WINDOW = 10
+OUTLIER_LOG_MAX = 0.4

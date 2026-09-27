@@ -18,6 +18,22 @@ def _mean(s: pd.Series) -> float:
     return float(s.mean()) if len(s) else np.nan
 
 
+def clean_daily(daily: pd.DataFrame) -> pd.DataFrame:
+    """Drop non-positive prices and isolated glitches, using only past observations (no look-ahead)."""
+    out = daily.copy()
+    for name in out.columns:
+        if name in config.LEVEL_SERIES:
+            continue
+        s = out[name].where(out[name] > 0)
+        if name in config.OUTLIER_SERIES:
+            obs = s.dropna()
+            med = obs.rolling(config.OUTLIER_WINDOW, min_periods=3).median().shift(1)
+            bad = obs.index[(np.log(obs / med)).abs() > config.OUTLIER_LOG_MAX]
+            s.loc[bad] = np.nan
+        out[name] = s
+    return out
+
+
 def hf_table(daily: pd.DataFrame, week: int, months: pd.PeriodIndex) -> pd.DataFrame:
     """High-frequency information available at the end of `week` of each month (no look-ahead)."""
     cutoff = config.WEEK_CUTOFF[week]

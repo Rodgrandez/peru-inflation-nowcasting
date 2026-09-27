@@ -2,7 +2,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nowcast.features import almon_cols, ar_cols, build_design, feature_cols, hf_table, weekly_cols
+from nowcast.features import (
+    almon_cols,
+    ar_cols,
+    build_design,
+    clean_daily,
+    feature_cols,
+    hf_table,
+    weekly_cols,
+)
 
 
 def _daily(values_by_day: dict, month="2020-03", prev_value=1.0, col="wti"):
@@ -69,3 +77,19 @@ def test_column_groups():
     design = build_design(monthly, hf, "headline")
     assert weekly_cols(design) == ["wti_w1", "wti_w2"] and almon_cols(design) == ["wti_a0", "wti_a1"]
     assert "y" not in feature_cols(design) and set(ar_cols()) <= set(feature_cols(design))
+
+
+def test_clean_daily_drops_isolated_glitches_only():
+    idx = pd.bdate_range("2005-03-01", periods=20, name="date")
+    wheat = np.full(20, 146.0)
+    wheat[12] = 0.46                                   # BCRP glitch, e.g. 2005-03-17
+    wheat[15:] = 150.0                                 # ordinary move is kept
+    wti = np.linspace(20, 10, 20)
+    wti[5] = -36.98                                    # negative price: log undefined
+    wti[10] = 6.0                                      # large genuine oil move: WTI is not filtered
+    d = pd.DataFrame({"wheat": wheat, "wti": wti, "rate": np.full(20, 4.0)}, index=idx)
+    d.loc[idx[3], "rate"] = 12.0                       # rate is a level series: never filtered
+    c = clean_daily(d)
+    assert np.isnan(c.loc[idx[12], "wheat"]) and c["wheat"].isna().sum() == 1
+    assert np.isnan(c.loc[idx[5], "wti"]) and c.loc[idx[10], "wti"] == 6.0
+    assert c["rate"].equals(d["rate"])

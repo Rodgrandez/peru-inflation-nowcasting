@@ -5,7 +5,7 @@ import pandas as pd
 from nowcast import config, plots, report
 from nowcast.data import download, load
 from nowcast.evaluation import dm_table, error_table, expanding_nowcasts
-from nowcast.features import build_design, hf_table
+from nowcast.features import build_design, clean_daily, hf_table
 
 
 def _nowcasts_path():
@@ -18,6 +18,7 @@ def stage_data():
 
 def stage_nowcast():
     daily, monthly = load(config.DATA_RAW)
+    daily = clean_daily(daily)
     frames = []
     for week in config.WEEKS:
         hf = hf_table(daily, week, monthly.index)
