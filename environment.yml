@@ -1,0 +1,17 @@
+name: inflation-nowcast
+channels: [conda-forge]
+dependencies:
+  - python=3.12
+  - pandas>=2.2,<3
+  - numpy>=2,<3
+  - scipy>=1.13
+  - scikit-learn>=1.5
+  - xgboost>=2.1
+  - matplotlib>=3.8
+  - pyarrow>=16
+  - pytest>=8
+  - ruff=0.16.9
+  - make
+  - pip
+  - pip:
+      - -e .
