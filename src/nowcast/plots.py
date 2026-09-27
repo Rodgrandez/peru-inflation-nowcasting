@@ -18,14 +18,14 @@ def _save(fig, path) -> Path:
 
 
 def rel_rmse_by_week(table, target: str, path) -> Path:
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=(6.4, 4.6))
     for model, g in table[table["model"] != "RW"].groupby("model"):
         g = g.sort_values("week")
         ax.plot(g["week"], g["rel_rmse"], marker="o", label=model)
     ax.axhline(1.0, c="grey", ls="--", lw=1)
     ax.set(xlabel="Week of the month (information set)", ylabel="RMSE relative to AR (random walk not shown)", xticks=[1, 2, 3, 4],
            title=LABELS.get(target, target))
-    ax.legend(frameon=False, fontsize=8, ncol=2)
+    ax.legend(frameon=False, fontsize=8, ncol=4, loc="upper center", bbox_to_anchor=(0.5, -0.16))
     return _save(fig, path)
 
 
