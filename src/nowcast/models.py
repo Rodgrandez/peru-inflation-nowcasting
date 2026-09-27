@@ -43,8 +43,11 @@ def model_zoo(design) -> dict:
         "U-MIDAS": Linear(umidas),
         "MIDAS-Almon": Linear(almon),
         "Ridge": Linear(ml, make_pipeline(StandardScaler(), RidgeCV(alphas=np.logspace(-3, 3, 25)))),
+        # eps=1e-2 keeps the smallest penalty away from the near-OLS region, where coordinate descent stalls
         "LASSO": Linear(ml, make_pipeline(StandardScaler(),
-                                          LassoCV(cv=TimeSeriesSplit(5), max_iter=50_000, random_state=config.SEED))),
+                                          LassoCV(alphas=30, eps=1e-2, cv=TimeSeriesSplit(5), max_iter=50_000,
+                                                  random_state=config.SEED))),
+        # n_jobs=1: with ~100-300 rows, thread start-up costs more than the trees themselves
         "XGBoost": Linear(ml, XGBRegressor(n_estimators=300, max_depth=2, learning_rate=0.05, subsample=0.8,
-                                           colsample_bytree=0.8, random_state=config.SEED)),
+                                           colsample_bytree=0.8, n_jobs=1, random_state=config.SEED)),
     }

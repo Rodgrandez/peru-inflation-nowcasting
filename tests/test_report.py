@@ -41,3 +41,25 @@ def test_plots_create_files(tmp_path):
                                   "yhat": np.linspace(0, 1, 10) + k})
                     for k, m in enumerate(["AR", "MIDAS-Almon"])])
     assert plots.nowcast_path(nc, ["AR", "MIDAS-Almon"], "headline", tmp_path / "b.png").exists()
+
+
+def test_pipeline_smoke(tmp_path, monkeypatch):
+    from conftest import make_daily, make_monthly
+
+    from nowcast import config, pipeline
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    make_daily().to_parquet(raw / "daily.parquet")
+    m = make_monthly()
+    m.index = m.index.to_timestamp()
+    m.to_parquet(raw / "monthly.parquet")
+    for name, value in {"DATA_RAW": raw, "ROOT": tmp_path, "REPORTS": tmp_path / "reports",
+                        "FIGURES": tmp_path / "reports/figures", "TABLES": tmp_path / "reports/tables",
+                        "DESIGN_START": "2010-03", "EVAL_START": "2016-07"}.items():
+        monkeypatch.setattr(config, name, value)
+    (tmp_path / "README.md").write_text("<!-- RESULTS:START -->\n<!-- RESULTS:END -->\n", encoding="utf-8")
+    pipeline.stage_nowcast()
+    pipeline.stage_report()
+    res = json.loads((tmp_path / "reports/results.json").read_text())
+    assert set(res["targets"]) == {"headline", "core"} and res["sample"]["n_months"] == 6
+    assert "Best end-of-month model" in (tmp_path / "README.md").read_text(encoding="utf-8")
