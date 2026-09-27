@@ -15,8 +15,12 @@ def _results():
                   "dm_stat": -1.5, "dm_pvalue": 0.041}]
     return {"sample": {"eval_start": "2015-01", "eval_end": "2026-08", "n_months": 140},
             "targets": {"headline": {"by_week": rows}, "core": {"by_week": rows}},
-            "best": {"headline": {"week": 4, "model": "MIDAS-Almon", "rel_rmse": 0.82, "dm_pvalue": 0.041},
-                     "core": {"week": 4, "model": "MIDAS-Almon", "rel_rmse": 0.82, "dm_pvalue": 0.041}}}
+            "best": {"headline": {"week": 4, "model": "MIDAS-Almon", "rel_rmse": 0.82, "dm_pvalue": 0.041,
+                                  "vs_ar_exp_rel_rmse": 0.97, "vs_ar_exp_dm_pvalue": 0.64, "worst_month": "2026-03",
+                                  "worst_share": 0.36, "rel_rmse_ex_worst": 0.91},
+                     "core": {"week": 4, "model": "AR", "rel_rmse": 1.0, "dm_pvalue": None,
+                              "vs_ar_exp_rel_rmse": None, "vs_ar_exp_dm_pvalue": None, "worst_month": "2026-03",
+                              "worst_share": 0.36, "rel_rmse_ex_worst": 1.0}}}
 
 
 def test_write_results_roundtrip(tmp_path):
@@ -75,3 +79,11 @@ def test_rel_rmse_plot_leaves_out_random_walk(tmp_path, monkeypatch):
         for w in (1, 2, 3, 4)]
     plots.rel_rmse_by_week(pd.DataFrame(rows), "headline", tmp_path / "a.png")
     assert captured["labels"] == ["AR", "MIDAS-Almon"]
+
+
+def test_findings_compare_with_ar_exp_and_report_worst_month():
+    text = report.results_markdown(_results())
+    assert "AR+exp" in text and "0.970" in text and "0.640" in text
+    assert "2026-03" in text and "36%" in text and "0.910" in text
+    assert "No model beats the AR benchmark" in text
+    assert "Best end-of-month model: **AR**" not in text

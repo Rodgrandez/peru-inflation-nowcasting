@@ -40,7 +40,13 @@ def test_zoo_models_fit_and_predict_finite():
     d = _design()
     X = d.drop(columns="y")
     zoo = model_zoo(d)
-    assert set(zoo) == {"RW", "AR", "U-MIDAS", "MIDAS-Almon", "Ridge", "LASSO", "XGBoost"}
+    assert set(zoo) == {"RW", "AR", "AR+exp", "U-MIDAS", "MIDAS-Almon", "Ridge", "LASSO", "XGBoost"}
     for name, m in zoo.items():
         p = m.fit(X.iloc[:-1], d["y"].iloc[:-1].to_numpy()).predict(X.iloc[[-1]])
         assert p.shape == (1,) and np.isfinite(p).all(), name
+
+
+def test_ar_exp_benchmark_adds_only_expectations():
+    # Every high-frequency model also sees exp_l1, so the value of daily data is measured against AR+exp.
+    zoo = model_zoo(_design())
+    assert zoo["AR+exp"].cols == zoo["AR"].cols + ["exp_l1"]

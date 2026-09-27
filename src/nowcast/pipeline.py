@@ -1,10 +1,11 @@
 import sys
 
+import numpy as np
 import pandas as pd
 
 from nowcast import config, plots, report
 from nowcast.data import download, load
-from nowcast.evaluation import dm_table, error_table, expanding_nowcasts
+from nowcast.evaluation import dm_table, end_of_month_summary, error_table, expanding_nowcasts
 from nowcast.features import build_design, clean_daily, hf_table
 
 
@@ -48,12 +49,12 @@ def stage_report():
         tab = tab.astype(object).where(pd.notna(tab), None)
         targets[target] = {"by_week": tab[["week", "model", "rmse", "mae", "rel_rmse", "dm_stat", "dm_pvalue"]]
                            .to_dict("records")}
-        w4 = tab[tab["week"] == 4].sort_values("rel_rmse").iloc[0]
-        best[target] = {"week": 4, "model": w4["model"], "rel_rmse": float(w4["rel_rmse"]),
-                        "dm_pvalue": None if w4["dm_pvalue"] is None else float(w4["dm_pvalue"])}
+        sub4 = nc[(nc["target"] == target) & (nc["week"] == 4)]
+        summary = end_of_month_summary(sub4)
+        best[target] = {"week": 4, **{k: None if isinstance(v, float) and np.isnan(v) else v
+                                      for k, v in summary.items()}}
         plots.rel_rmse_by_week(pd.DataFrame(targets[target]["by_week"]), target,
                                config.FIGURES / f"rel_rmse_{target}.png")
-        sub4 = nc[(nc["target"] == target) & (nc["week"] == 4)]
         models = ["AR"] + ([best[target]["model"]] if best[target]["model"] != "AR" else [])
         plots.nowcast_path(sub4, models, target, config.FIGURES / f"nowcast_{target}.png")
     months = nc["month"].unique()

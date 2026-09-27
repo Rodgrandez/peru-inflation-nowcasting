@@ -4,7 +4,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nowcast.evaluation import diebold_mariano, dm_table, error_table, expanding_nowcasts
+from nowcast.evaluation import (
+    diebold_mariano,
+    dm_table,
+    end_of_month_summary,
+    error_table,
+    expanding_nowcasts,
+)
 
 
 class Spy:
@@ -71,3 +77,37 @@ def test_dm_table_excludes_benchmark():
     nc = pd.DataFrame({"month": list(range(50)) * 2, "model": ["AR"] * 50 + ["X"] * 50, "y": 0.0,
                        "yhat": np.r_[rng.normal(0, 1, 50), rng.normal(0, 1, 50)]})
     assert dm_table(nc)["model"].tolist() == ["X"]
+
+
+def _summary_nowcasts():
+    rng = np.random.default_rng(3)
+    months = pd.period_range("2015-01", periods=60, freq="M")
+    y = rng.normal(0.3, 0.3, 60)
+    err = {"AR": rng.normal(0, 0.3, 60), "AR+exp": rng.normal(0, 0.28, 60), "X": rng.normal(0, 0.2, 60)}
+    err["AR"][10] = 3.0                                # one month dominates AR's squared errors
+    return pd.DataFrame([{"month": m, "model": k, "y": y[i], "yhat": y[i] + e[i]}
+                         for k, e in err.items() for i, m in enumerate(months)])
+
+
+def test_end_of_month_summary_compares_best_with_ar_exp_and_drops_worst_month():
+    nc = _summary_nowcasts()
+    s = end_of_month_summary(nc)
+    assert s["model"] == "X"
+    e = nc.assign(e=nc.yhat - nc.y).pivot(index="month", columns="model", values="e")
+    rmse = np.sqrt((e ** 2).mean())
+    assert s["rel_rmse"] == pytest.approx(rmse["X"] / rmse["AR"])
+    assert s["vs_ar_exp_rel_rmse"] == pytest.approx(rmse["X"] / rmse["AR+exp"])
+    assert s["vs_ar_exp_dm_pvalue"] == pytest.approx(diebold_mariano(e["X"], e["AR+exp"])[1])
+    assert s["worst_month"] == str(pd.Period("2015-11", "M"))
+    assert s["worst_share"] == pytest.approx(e["AR"].iloc[10] ** 2 / (e["AR"] ** 2).sum())
+    ex = e.drop(index=pd.Period("2015-11", "M"))
+    rmse_ex = np.sqrt((ex ** 2).mean())
+    assert s["rel_rmse_ex_worst"] == pytest.approx(rmse_ex["X"] / rmse_ex["AR"])
+
+
+def test_end_of_month_summary_when_nothing_beats_ar():
+    nc = _summary_nowcasts()
+    nc = nc[nc.model != "X"]
+    nc.loc[nc.model == "AR+exp", "yhat"] += 5.0          # make AR+exp clearly worse than AR
+    s = end_of_month_summary(nc)
+    assert s["model"] == "AR" and s["rel_rmse"] == 1.0 and np.isnan(s["vs_ar_exp_rel_rmse"])

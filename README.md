@@ -53,11 +53,15 @@ Best end-of-month model: **AR**, relative RMSE **1.000** (Diebold-Mariano p-valu
 - Information sets at the end of weeks 1-4 (days 7, 14, 21 and month end). Inflation and expectations for the
   current month are never used: they are published after the month ends.
 - Daily prices: non-positive values and isolated glitches in the published series (e.g. wheat at 0.46 US$/t on
-  2005-03-17) are dropped using only past observations (more than 0.4 log points from the trailing 10-day median).
+  2005-03-17) are dropped using only past observations (more than 0.4 log points from the median of the previous 10 observations).
 - Estimation starts in 2003-01 (inflation-targeting regime); nowcasts are evaluated from 2015-01.
-- Diebold-Mariano tests on squared errors with the Harvey-Leybourne-Newbold correction.
+- Diebold-Mariano tests on squared errors with the Harvey-Leybourne-Newbold correction. Many model-week pairs are
+  compared without a multiple-comparison correction, so read individual p-values with that in mind.
+- All high-frequency and machine learning models also use the lagged expectations survey; **AR+exp** (AR plus that
+  survey) isolates what the daily data add on top of it.
 
 ## Reproduce
+Pinned versions in `environment.yml` (conda-forge); the full run takes about 40 minutes on a laptop.
 ```bash
 conda env create -f environment.yml && conda activate inflation-nowcast
 make all        # or: python -m nowcast.pipeline all

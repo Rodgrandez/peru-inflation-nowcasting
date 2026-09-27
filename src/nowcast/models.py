@@ -40,6 +40,7 @@ def model_zoo(design) -> dict:
     return {
         "RW": RandomWalk(),
         "AR": Linear(ar),
+        "AR+exp": Linear(ar + ["exp_l1"]),
         "U-MIDAS": Linear(umidas),
         "MIDAS-Almon": Linear(almon),
         "Ridge": Linear(ml, make_pipeline(StandardScaler(), RidgeCV(alphas=np.logspace(-3, 3, 25)))),

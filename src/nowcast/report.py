@@ -26,6 +26,24 @@ def _fmt_p(p) -> str:
     return "–" if p is None or (isinstance(p, float) and np.isnan(p)) else f"{p:.3f}"
 
 
+def _missing(x) -> bool:
+    return x is None or (isinstance(x, float) and np.isnan(x))
+
+
+def _findings(b: dict) -> str:
+    if b["model"] == "AR":
+        return "No model beats the AR benchmark at the end of the month (week 4)."
+    text = (f"Best end-of-month model: **{b['model']}**, relative RMSE **{b['rel_rmse']:.3f}** "
+            f"(Diebold-Mariano p-value vs AR: {_fmt_p(b['dm_pvalue'])}).")
+    if not _missing(b["vs_ar_exp_rel_rmse"]):
+        text += (f" Against **AR+exp** (the AR plus the lagged expectations survey, which every high-frequency model "
+                 f"also uses) its relative RMSE is **{b['vs_ar_exp_rel_rmse']:.3f}** "
+                 f"(p-value: {_fmt_p(b['vs_ar_exp_dm_pvalue'])}).")
+    text += (f" Robustness: {b['worst_month']} accounts for {b['worst_share']:.0%} of the AR's squared errors; "
+             f"without it the relative RMSE is {b['rel_rmse_ex_worst']:.3f}.")
+    return text
+
+
 def results_markdown(r: dict) -> str:
     s = r["sample"]
     out = [(f"Out-of-sample nowcasts, expanding window, {s['eval_start']} to {s['eval_end']} "
@@ -39,9 +57,7 @@ def results_markdown(r: dict) -> str:
         for model, row in wide.iterrows():
             cells = " | ".join(f"{row[w]:.3f}" for w in (1, 2, 3, 4))
             out.append(f"| {model} | {cells} | {_fmt_p(p4.get(model))} |")
-        b = r["best"][target]
-        out += ["", (f"Best end-of-month model: **{b['model']}**, relative RMSE **{b['rel_rmse']:.3f}** "
-                     f"(Diebold-Mariano p-value vs AR: {_fmt_p(b['dm_pvalue'])})."), ""]
+        out += ["", _findings(r["best"][target]), ""]
     return "\n".join(out).rstrip()
 
 

@@ -49,3 +49,23 @@ def dm_table(nowcasts: pd.DataFrame, benchmark: str = "AR") -> pd.DataFrame:
         stat, p = diebold_mariano(err[model], err[benchmark])
         rows.append({"model": model, "dm_stat": stat, "dm_pvalue": p})
     return pd.DataFrame(rows)
+
+
+def end_of_month_summary(nowcasts: pd.DataFrame, benchmark: str = "AR", with_exp: str = "AR+exp") -> dict:
+    """Best model against AR, against AR plus expectations, and without the month that dominates AR's errors."""
+    e = nowcasts.assign(e=nowcasts["yhat"] - nowcasts["y"]).pivot(index="month", columns="model", values="e")
+    rmse = np.sqrt((e ** 2).mean())
+    best = str((rmse / rmse[benchmark]).idxmin())
+    out = {"model": best, "rel_rmse": float(rmse[best] / rmse[benchmark]),
+           "dm_pvalue": diebold_mariano(e[best], e[benchmark])[1] if best != benchmark else float("nan"),
+           "vs_ar_exp_rel_rmse": float("nan"), "vs_ar_exp_dm_pvalue": float("nan")}
+    if best not in (benchmark, with_exp):
+        out["vs_ar_exp_rel_rmse"] = float(rmse[best] / rmse[with_exp])
+        out["vs_ar_exp_dm_pvalue"] = diebold_mariano(e[best], e[with_exp])[1]
+    sq = e[benchmark] ** 2
+    worst = sq.idxmax()
+    ex = e.drop(index=worst)
+    rmse_ex = np.sqrt((ex ** 2).mean())
+    out.update(worst_month=str(worst), worst_share=float(sq[worst] / sq.sum()),
+               rel_rmse_ex_worst=float(rmse_ex[best] / rmse_ex[benchmark]))
+    return out
