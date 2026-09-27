@@ -26,9 +26,14 @@ def parse_response(payload: dict, names: list[str]) -> pd.DataFrame:
     return pd.DataFrame(values, index=index, columns=names)
 
 
-def fetch(series: dict[str, str], start: str, end: str) -> pd.DataFrame:
-    url = API.format(codes="-".join(series.values()), start=start, end=end)
+def _get_json(codes: str, start: str, end: str) -> dict:
+    url = API.format(codes=codes, start=start, end=end)
     request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(request, timeout=120) as response:
-        payload = json.loads(response.read().decode("utf-8"))
-    return parse_response(payload, list(series))
+        return json.loads(response.read().decode("utf-8"))
+
+
+def fetch(series: dict[str, str], start: str, end: str) -> pd.DataFrame:
+    """One request per series: multi-series responses come back sorted by code, not in request order."""
+    frames = [parse_response(_get_json(code, start, end), [name]) for name, code in series.items()]
+    return pd.concat(frames, axis=1).sort_index()
